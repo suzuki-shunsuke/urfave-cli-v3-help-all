@@ -11,6 +11,7 @@ import (
 
 type Options struct{}
 
+// With appends a new command to show the help of all commands to the given command and returns the given command.
 func With(rootCmd *cli.Command, opts *Options) *cli.Command {
 	rootCmd.Commands = append(rootCmd.Commands, New(rootCmd, opts))
 	return rootCmd
