@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 
@@ -24,10 +23,6 @@ func run() error {
 				Name:        "foo",
 				Usage:       "foo command",
 				Description: "This is a foo command",
-				Action: func(ctx context.Context, cmd *cli.Command) error {
-					fmt.Println(cmd.Name)
-					return nil
-				},
 			},
 			{
 				Name:        "bar",
