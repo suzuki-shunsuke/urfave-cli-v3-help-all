@@ -1,45 +1,46 @@
 package helpall
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"strings"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 type Options struct{}
 
+// With appends a new command to show the help of all commands to the given command and returns the given command.
+func With(rootCmd *cli.Command, opts *Options) *cli.Command {
+	rootCmd.Commands = append(rootCmd.Commands, New(rootCmd, opts))
+	return rootCmd
+}
+
 // New returns a new command to show the help of all commands.
-func New(_ *Options) *cli.Command {
+func New(rootCmd *cli.Command, _ *Options) *cli.Command {
 	return &cli.Command{
 		Name:   "help-all",
 		Hidden: true,
 		Usage:  "show all help",
-		Action: func(ctx *cli.Context) error {
-			app := ctx.App
-			fmt.Fprintln(app.Writer, "```console")
-			fmt.Fprintf(app.Writer, "$ %s --help\n", app.Name)
-			if err := cli.ShowAppHelp(ctx); err != nil {
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			fmt.Fprintln(cmd.Writer, "```console")
+			fmt.Fprintf(cmd.Writer, "$ %s --help\n", rootCmd.Name)
+			if err := cli.ShowAppHelp(rootCmd); err != nil {
 				return err
 			}
-			fmt.Fprintln(app.Writer, "```")
-
-			subcommands := ctx.Command.Subcommands
-			ctx.Command.Subcommands = nil
-			defer func() {
-				ctx.Command.Subcommands = subcommands
-			}()
+			fmt.Fprintln(cmd.Writer, "```")
 
 			cmdName := "help-all"
-			if ctx.Command != nil && ctx.Command.Name != "" {
-				cmdName = ctx.Command.Name
+			if cmd.Name != "" {
+				cmdName = cmd.Name
 			}
 
-			for _, cmd := range app.Commands {
-				if cmd.Name == cmdName {
+			for _, c := range rootCmd.Commands {
+				if c.Name == cmdName {
 					continue
 				}
-				if err := showCommandHelp(ctx, cmd, app.Name, 2); err != nil { //nolint:mnd
+				if err := showCommandHelp(ctx, rootCmd.Writer, c, rootCmd, 2); err != nil { //nolint:mnd
 					return err
 				}
 			}
@@ -48,29 +49,23 @@ func New(_ *Options) *cli.Command {
 	}
 }
 
-func showCommandHelp(ctx *cli.Context, cmd *cli.Command, parentCommand string, level int) error {
+func showCommandHelp(ctx context.Context, w io.Writer, cmd, parentCommand *cli.Command, level int) error {
 	if cmd.Hidden || cmd.Name == "help" {
 		return nil
 	}
-	command := parentCommand + " " + cmd.Name
-	fmt.Fprintf(ctx.App.Writer, "\n%s %s\n\n", strings.Repeat("#", level), command)
-	fmt.Fprintln(ctx.App.Writer, "```console")
-	fmt.Fprintf(ctx.App.Writer, "$ %s --help\n", command)
+	command := parentCommand.Name + " " + cmd.Name
+	fmt.Fprintf(w, "\n%s %s\n\n", strings.Repeat("#", level), command)
+	fmt.Fprintln(w, "```console")
+	fmt.Fprintf(w, "$ %s --help\n", command)
 
-	if err := cli.ShowCommandHelp(ctx, cmd.Name); err != nil {
+	if err := cli.ShowCommandHelp(ctx, parentCommand, cmd.Name); err != nil {
 		return err
 	}
-	fmt.Fprintln(ctx.App.Writer, "```")
-
-	a := ctx.Command
-	ctx.Command = cmd
-	defer func() {
-		ctx.Command = a
-	}()
+	fmt.Fprintln(w, "```")
 
 	level2 := level + 1
-	for _, subcmd := range cmd.Subcommands {
-		if err := showCommandHelp(ctx, subcmd, command, level2); err != nil {
+	for _, subcmd := range cmd.Commands {
+		if err := showCommandHelp(ctx, w, subcmd, cmd, level2); err != nil {
 			return err
 		}
 	}
