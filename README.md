@@ -5,6 +5,10 @@
 A Go library to show the help of all commands of CLIs built with [urfave/cli/v3](https://pkg.go.dev/github.com/urfave/cli/v3).
 This is useful if you want to put the usage of CLI built with urfave/cli/v3 into the document.
 
+## :warning: Deprecated. Please use suzuki-shunsuke/urfave-cli-v3-util
+
+https://github.com/suzuki-shunsuke/urfave-cli-v3-util
+
 ## How To Use
 
 [Example](cmd/hello/main.go)
